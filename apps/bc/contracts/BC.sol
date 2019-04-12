@@ -31,7 +31,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
 
     string private constant ERROR_POOL_NOT_CONTRACT = "BC_POOL_NOT_CONTRACT";
     string private constant ERROR_VAULT_NOT_CONTRACT = "BC_VAULT_NOT_CONTRACT";
-    
+
     string private constant ERROR_BCTOKEN_NOT_CONTRACT = "BC_TOKEN_NOT_CONTRACT";
     string private constant ERROR_INVALID_INIT_PARAMETER = "INVALID_INIT_PARAMETER";
     string private constant ERROR_TRANSFERFROM_FAILED = "TRANSERFROM_FAILED";
@@ -103,7 +103,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         require(_collateralTokens.length <= MAX_COLLATERAL_TOKENS, ERROR_INVALID_INIT_PARAMETER);
         uint256 len = _collateralTokens.length;
         require(
-            len == _virtualSupplies.length && 
+            len == _virtualSupplies.length &&
             len == _virtualBalances.length &&
             len == _reserveRatios.length, ERROR_INVALID_INIT_PARAMETER);
         require(_collateralTokens.length >= 0, ERROR_INVALID_INIT_PARAMETER);
@@ -124,7 +124,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         batchBlocks = _batchBlocks;
     }
 
-/***** external view functions *****/
+    /***** external view functions *****/
 
     /**
         @dev getUserBlocks() Returns an array of all the batched blocks a user may have or have had an order in.
@@ -213,7 +213,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         return _totalSupply.mul(ppm).mul(ppm) / (uint256(reserveRatios[collateralToken]).mul(_totalSupply) ** (ppm / reserveRatios[collateralToken]));
     }
 
-/***** external functions *****/
+    /***** external functions *****/
 
     /**
         @dev updateReserveRatio() This function let's you update the reserve ratio for a specific collateral token.
@@ -227,7 +227,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
 
     /**
         @dev addBuy() This function allows you to enter a buy order into the current batch.
-        
+
         NOTICE: totalSupply remains the same and balance remains the same
         (although collateral has been collected and is being held by this contract)
 
@@ -254,7 +254,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
 
     /**
         @dev addSell() This function allows you to enter a sell order into the current batch.
-    
+
         NOTICE: totalSupply is decremented but the pool balance remains the same.
 
         @param collateralToken The address of the collateral token used.
@@ -322,7 +322,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         _mint(sender, individualBuyReturn);
     }
 
-/***** public view functions *****/
+    /***** public view functions *****/
 
     /**
         @dev currentBatch() Returns the block number being attached to the current batch of orders.
@@ -370,9 +370,9 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
     */
     function getBuy(address collateralToken, uint256 _totalSupply, uint256 _poolBalance, uint256 buyValue) public view returns (uint256) {
         return calculatePurchaseReturn(
-            safeAdd(_totalSupply, virtualSupplies[collateralToken]), 
-            safeAdd(_poolBalance, virtualBalances[collateralToken]), 
-            reserveRatios[collateralToken], 
+            safeAdd(_totalSupply, virtualSupplies[collateralToken]),
+            safeAdd(_poolBalance, virtualBalances[collateralToken]),
+            reserveRatios[collateralToken],
             buyValue);
     }
 
@@ -390,10 +390,10 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         return calculateSaleReturn(safeAdd(_totalSupply, virtualSupplies[collateralToken]), safeAdd(_poolBalance, virtualBalances[collateralToken]), reserveRatios[collateralToken], sellAmount);
     }
 
-/***** public functions *****/
+    /***** public functions *****/
 
 
-/***** internal functions *****/
+    /***** internal functions *****/
 
     /**
     * @notice Burn `@tokenAmount(self.token(): address, _amount, false)` tokens from `_holder`
@@ -440,7 +440,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         cb.cleared = true;
         waitingClear = 0;
     }
-    
+
     /**
         @dev _clearMatching() This function does the work of recording the results of the orders from the current batch. It is instigated from the `_clearBatch()` function and the exact details of how it works are written in the code itself.
 
