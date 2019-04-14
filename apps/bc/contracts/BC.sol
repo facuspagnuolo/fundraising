@@ -243,6 +243,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         if (!cb.init) {
             _initBatch(batch);
         }
+        // Shouldn't we use SafeERC20 in case we use tokens not satisfying the standard totally
         require(ERC20(collateralToken).transferFrom(msg.sender, address(this), value), ERROR_TRANSFERFROM_FAILED);
         cb.totalBuySpend = cb.totalBuySpend.add(value);
         if (cb.buyers[sender] == 0) {
@@ -330,6 +331,7 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
         @return uint The block number of the current batch of orders.
     */
     function currentBatch() public view returns (uint) {
+      // Shouldn’t we use SafeMath ? I see the trick of int rounding the thing but it should work [more safely] with SafeMath, right ?
         return (block.number / batchBlocks) * batchBlocks;
     }
 
@@ -428,7 +430,9 @@ contract BC is EtherTokenConstant, IsContract, AragonApp, IBC, BancorFormula, To
     */
     function _clearBatch(address collateralToken) internal {
         if (waitingClear == 0) return;
+
         Batch storage cb = batchesByCollateralToken[collateralToken][waitingClear]; // clearing batch
+
         if (cb.cleared) return;
         _clearMatching(collateralToken);
 
