@@ -8,10 +8,15 @@ import "@aragon/apps-shared-minime/contracts/MiniMeToken.sol";
 import "@aragon/apps-vault/contracts/Vault.sol";
 import "@aragon/apps-finance/contracts/Finance.sol";
 import "@aragon/apps-voting/contracts/Voting.sol";
-import { PandoColony } from "@pando/colony/contracts/PandoColony.sol";
-import { TokenManager } from "@aragon/apps-token-manager/contracts/TokenManager.sol";
+import "@aragon/apps-token-manager/contracts/TokenManager.sol";
 
+// Fundraising Apps
+import "@ablack/controller-aragon-fundraising/contracts/AragonFundraisingController.sol";
+import "@ablack/fundraising-market-maker-bancor/contracts/BancorMarketMaker.sol";
+import "@ablack/fundraising-module-pool/contracts/Pool.sol";
+import "@ablack/fundraising-module-tap/contracts/Tap.sol";
 
+// We will probably need to hardcode these addresses to save gas
 contract APMNamehash {
     bytes32 constant public ETH_NODE = keccak256(bytes32(0), keccak256("eth"));
     bytes32 constant public APM_NODE = keccak256(ETH_NODE, keccak256("aragonpm"));
@@ -55,12 +60,15 @@ contract KitBase is APMNamehash {
 }
 
 
-contract PandoKit is KitBase {
+contract FundraisingKit is KitBase {
     bool devchain;
     MiniMeTokenFactory tokenFactory;
 
     uint256 constant PCT = 10 ** 16;
     address constant ANY_ENTITY = address(-1);
+    uint256 constant MAX_MONTHLY_TAP_INCREASE_RATE = 50 * (10 ** 16) // 5% per month set by default
+    uint256 constant DEFAULT_FEE = 10 * (10 ** 16) // 1%
+    uint256 constant DEFAULT_BATCH_BLOCK_SIZE = 1
 
     event DeployToken(address token, string name, string symbol);
 
@@ -76,12 +84,15 @@ contract PandoKit is KitBase {
     }
 
     function newInstance(MiniMeToken token) external {
-        bytes32[5] memory appIds = [
-            apmNamehash("vault", false),            // 0
-            apmNamehash("finance", false),          // 1
-            apmNamehash("token-manager", false),    // 2
-            apmNamehash("voting", false),           // 3
-            apmNamehash("pando-colony", !devchain)  // 4
+        bytes32[8] memory appIds = [
+            apmNamehash("vault", false),
+            apmNamehash("finance", false),
+            apmNamehash("pool", false),
+            apmNamehash("tap", false),
+            apmNamehash("token-manager", false),
+            apmNamehash("voting", false),
+            apmNamehash("fundraising", false)
+            apmNamehash("bancor-market-maker", false)
         ];
 
         // DAO
@@ -109,48 +120,71 @@ contract PandoKit is KitBase {
         );
         emit InstalledApp(finance, appIds[1]);
 
-        TokenManager tokenManager = TokenManager(
+        Pool pool = Pool(
             dao.newAppInstance(
                 appIds[2],
                 latestVersionAppBase(appIds[2])
             )
         );
-        emit InstalledApp(tokenManager, appIds[2]);
+        emit InstalledApp(pool, appIds[2]);
 
-        Voting metavoting = Voting(
+        Tap tap = Tap(
             dao.newAppInstance(
                 appIds[3],
                 latestVersionAppBase(appIds[3])
             )
         );
-        emit InstalledApp(metavoting, appIds[3]);
+        emit InstalledApp(tap, appIds[3]);
 
-        PandoColony colony = PandoColony(
+        TokenManager tokenManager = TokenManager(
             dao.newAppInstance(
                 appIds[4],
                 latestVersionAppBase(appIds[4])
             )
         );
-        emit InstalledApp(colony, appIds[4]);
+        emit InstalledApp(tokenManager, appIds[4]);
+
+        Voting metavoting = Voting(
+            dao.newAppInstance(
+                appIds[3],
+                latestVersionAppBase(appIds[5])
+            )
+        );
+        emit InstalledApp(metavoting, appIds[5]);
+
+        AragonFundraisingController controller = AragonFundraisingController(
+            dao.newAppInstance(
+                appIds[6],
+                latestVersionAppBase(appIds[6])
+            )
+        );
+        emit InstalledApp(controller, appIds[6]);
+
+        BancorMarketMaker marketMaker = BancorMarketMaker(
+            dao.newAppInstance(
+                appIds[7],
+                latestVersionAppBase(appIds[7])
+            )
+        );
+        emit InstalledApp(marketMaker, appIds[7]);
 
         // Permissions
-        acl.grantPermission(colony, dao, dao.APP_MANAGER_ROLE());
-        acl.grantPermission(colony, acl, acl.CREATE_PERMISSIONS_ROLE());
+        acl.grantPermission(controller, dao, dao.APP_MANAGER_ROLE());
+        acl.grantPermission(controller, acl, acl.CREATE_PERMISSIONS_ROLE());
         acl.createPermission(finance, vault, vault.TRANSFER_ROLE(), metavoting);
         acl.createPermission(metavoting, finance, finance.CREATE_PAYMENTS_ROLE(), metavoting);
         acl.createPermission(metavoting, finance, finance.EXECUTE_PAYMENTS_ROLE(), metavoting);
         acl.createPermission(metavoting, finance, finance.MANAGE_PAYMENTS_ROLE(), metavoting);
         acl.createPermission(this, tokenManager, tokenManager.MINT_ROLE(), this);
-        acl.createPermission(metavoting, tokenManager, tokenManager.ISSUE_ROLE(), metavoting);
-        acl.createPermission(metavoting, tokenManager, tokenManager.ASSIGN_ROLE(), metavoting);
-        acl.createPermission(metavoting, tokenManager, tokenManager.REVOKE_VESTINGS_ROLE(), metavoting);
-        acl.createPermission(metavoting, tokenManager, tokenManager.BURN_ROLE(), metavoting);
+
+        // acl.createPermission(metavoting, tokenManager, tokenManager.ISSUE_ROLE(), metavoting);
+        // acl.createPermission(metavoting, tokenManager, tokenManager.ASSIGN_ROLE(), metavoting);
+        // acl.createPermission(metavoting, tokenManager, tokenManager.REVOKE_VESTINGS_ROLE(), metavoting);
+        // acl.createPermission(metavoting, tokenManager, tokenManager.BURN_ROLE(), metavoting);
+
         acl.createPermission(ANY_ENTITY, metavoting, metavoting.CREATE_VOTES_ROLE(), metavoting);
         acl.createPermission(metavoting, metavoting, metavoting.MODIFY_SUPPORT_ROLE(), metavoting);
         acl.createPermission(metavoting, metavoting, metavoting.MODIFY_QUORUM_ROLE(), metavoting);
-        acl.createPermission(ANY_ENTITY, colony, colony.CREATE_REPOSITORY_ROLE(), metavoting);
-        acl.createPermission(metavoting, reg, reg.REGISTRY_ADD_EXECUTOR_ROLE(), metavoting);
-        acl.createPermission(metavoting, reg, reg.REGISTRY_MANAGER_ROLE(), metavoting);
 
         // Initialize apps
         token.changeController(tokenManager);
@@ -158,10 +192,22 @@ contract PandoKit is KitBase {
         finance.initialize(vault, 30 days);
         tokenManager.initialize(token, true, 0);
         metavoting.initialize(token, uint64(50 * PCT), uint64(20 * PCT), 1 days);
-        colony.initialize(ens, devchain);
+        pool.initialize()
+        tap.initialize(vault, msg.sender, MAX_MONTHLY_TAP_INCREASE_RATE)
+        /* marketMaker.initialize(
+            marketMakerInterface.addr,
+            tokenManager,
+            vault,
+            msg.sender,
+            bancorFormulaInterface.addr,
+            DEFAULT_BATCH_BLOCK_SIZE,
+            DEFAULT_FEE
+          ) Hardcode interface addresses?
+        */
+        // controller.initialize(marketMaker, reserve, tap);
 
         // Mint token
-        tokenManager.mint(msg.sender, uint256(1));
+        // tokenManager.mint(msg.sender, uint256(1));
 
         // Cleanup permissions
         acl.grantPermission(metavoting, dao, dao.APP_MANAGER_ROLE());
@@ -170,7 +216,7 @@ contract PandoKit is KitBase {
         acl.grantPermission(metavoting, acl, acl.CREATE_PERMISSIONS_ROLE());
         acl.revokePermission(this, acl, acl.CREATE_PERMISSIONS_ROLE());
         acl.setPermissionManager(metavoting, acl, acl.CREATE_PERMISSIONS_ROLE());
-        acl.grantPermission(metavoting, tokenManager, tokenManager.MINT_ROLE());
+        // acl.grantPermission(metavoting, tokenManager, tokenManager.MINT_ROLE()); Remove
         acl.revokePermission(this, tokenManager, tokenManager.MINT_ROLE());
         acl.setPermissionManager(metavoting, tokenManager, tokenManager.MINT_ROLE());
 
