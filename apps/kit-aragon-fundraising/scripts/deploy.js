@@ -3,7 +3,7 @@
 const ETHProvider = require('eth-provider')
 const contractor = require('truffle-contract')
 const MiniMeTokenFactory = contractor(require('../build/contracts/MiniMeTokenFactory.json'))
-const PandoKit = contractor(require('../build/contracts/PandoKit.json'))
+const FundraisingKit = contractor(require('../build/contracts/FundraisingKit.json'))
 
 const _die = message => {
   console.error(message)
@@ -39,9 +39,9 @@ const main = async () => {
       MiniMeTokenFactory.defaults({ from: root, gasPrice: 20000000000 })
       MiniMeTokenFactory.autoGas = true
 
-      PandoKit.setProvider(provider)
-      PandoKit.defaults({ from: root, gasPrice: 20000000000 })
-      PandoKit.autoGas = true
+      FundraisingKit.setProvider(provider)
+      FundraisingKit.defaults({ from: root, gasPrice: 20000000000 })
+      FundraisingKit.autoGas = true
 
       MiniMeTokenFactory.new()
         .on('error', err => {
@@ -53,7 +53,7 @@ const main = async () => {
           console.log('Deploying MiniMeTokenFactory ' + hash)
         })
         .then(factory => {
-          PandoKit.new(ENS, factory.address, devchain)
+          FundraisingKit.new(ENS, factory.address, devchain)
             .on('error', err => {
               if (!err.message.includes('Failed to subscribe to new newBlockHeaders to confirm the transaction receipts')) {
                 _die(err.message)

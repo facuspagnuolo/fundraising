@@ -1,4 +1,4 @@
 {
-  "name": "PandoKit",
-  "description": "DAOKit for pando organizations"
+  "name": "FundraisingKit",
+  "description": "DAOKit for creating a fundraising token minted and managed by a bonding curve"
 }

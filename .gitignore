@@ -26,3 +26,7 @@ yarn-error.log
 # Ignore lock files
 package-lock.json
 yarn.lock
+
+# vim
+**/**.swp
+**/**.swo
